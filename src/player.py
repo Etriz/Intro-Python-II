@@ -3,8 +3,9 @@
 
 
 class Player:
-    def __init__(self, current_room):
+    def __init__(self, current_room, inventory=[]):
         self.current_room = current_room
+        self.inventory = inventory
 
     def __str__(self):
         return f"You are in the {self.current_room} room"
