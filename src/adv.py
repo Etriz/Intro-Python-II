@@ -1,10 +1,14 @@
 #! /usr/bin/python3
 from room import Room
 from player import Player
+from item import Item
 
 
 def getUserInput():
-    userInput = input("Direction to move: ").lower()
+    userInput = input("Direction to move: ").lower().split(" ")
+    print(userInput)
+    if len(userInput) == 1:
+        return userInput[0]
     return userInput
 
 
@@ -36,6 +40,16 @@ def movePlayer(direction):
     """
 
 
+def take(item):
+    print(f"item {item.name} {item.description}")
+
+    playerLocation.items.remove(item)
+    player.inventory.append(item)
+    print(f"player has: {player.inventory}")
+    print(f"room has: {playerLocation.items}")
+    return
+
+
 def roomInfo(rm):
     # room name
     print(f"You are in the {playerLocation}")
@@ -45,7 +59,14 @@ def roomInfo(rm):
     print(playerLocation.description)
     print("=" * 5)
 
+    # items in the room
+    # roomItems = [item.name for item in playerLocation.items]
+    print(playerLocation.itemList())
+    print("=" * 5)
+
     # exits
+    roomExits = ["n_to", "s_to", "e_to", "w_to"]
+
     exits = []
     for direction in roomExits:
         if hasattr(playerLocation, direction):
@@ -61,12 +82,22 @@ def quitGame():
     return "game quit"
 
 
+# Item creation
+
+worldItems = {
+    "torch": Item("torch", "A lit torch that is able to provide some light"),
+    "key": Item("key", "Who knows what lock this might open?"),
+}
+
+
 # Declare all the rooms
 
-roomExits = ["n_to", "s_to", "e_to", "w_to"]
-
 room = {
-    "outside": Room("Outside Cave Entrance", "North of you, the cave mount beckons"),
+    "outside": Room(
+        "Outside Cave Entrance",
+        "North of you, the cave mount beckons",
+        [worldItems["torch"], worldItems["key"]],
+    ),
     "foyer": Room(
         "Foyer",
         "Dim light filters in from the south. Dusty passages run north and east.",
@@ -106,8 +137,8 @@ room["treasure"].s_to = room["narrow"]
 
 player = Player(room["outside"])
 print(f"### initial room: {player.current_room} ###")
-playerLocation = player.current_room  #!!
-# print(type(playerLocation))
+playerLocation = player.current_room
+
 
 #
 # Main
@@ -130,13 +161,22 @@ playerLocation = player.current_room  #!!
 # print(room["foyer"])
 # print(room["outside"])
 # print(f"Connects to: {room[playerLocation].n_to.name}")
-
+moveDir = ["n", "s", "e", "w"]
+doCmds = ["get", "take", "drop", "look"]
 
 #! GAME LOOP
 roomInfo(playerLocation)
 while True:
+    print(f"inv is {player.inventory}")
     cmdInput = getUserInput()
-    if cmdInput == "q":
+    if cmdInput == "q" or cmdInput == "quit":
         break
     else:
-        movePlayer(cmdInput)
+        if cmdInput in moveDir:
+            movePlayer(cmdInput)
+            continue
+        elif cmdInput[0] == "take":
+            take(worldItems[cmdInput[1]])
+            continue
+        else:
+            print("Unknown command")
