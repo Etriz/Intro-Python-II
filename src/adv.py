@@ -3,6 +3,7 @@ from room import Room
 from player import Player
 from item import Item
 from lightsource import Lightsource
+from container import Container
 
 
 def getUserInput():
@@ -43,10 +44,14 @@ def movePlayer(direction):
 
 def take(item):
     takeItem = worldItems[item]
-    if takeItem in playerLocation.items:
+    containerItem = isinstance(takeItem, Container)
+    if takeItem in playerLocation.items and not containerItem:
         playerLocation.items.remove(takeItem)
         player.inventory.append(takeItem)
         print(takeItem.on_take())
+        return
+    if containerItem:
+        print("You can not take that item")
         return
     print(f"There is no {takeItem.name} here")
 
@@ -65,8 +70,28 @@ def look(item):
     lookItem = worldItems[item]
     if lookItem in player.inventory or lookItem in playerLocation.items:
         print(lookItem.description)
+        # isContainer = isinstance(lookItem, Container)
+        # if isContainer:
+        #     for insideItem in lookItem.inside:
+        #         lookItem.inside.remove(insideItem)
+        #         playerLocation.items.append(insideItem)
         return
     print(f"You do not see a {lookItem.name}")
+
+
+def openContainer(item):
+    openItem = worldItems[item]
+    if openItem in playerLocation.items:
+        isContainer = isinstance(openItem, Container)
+        if isContainer:
+            print(openItem)
+            for insideItem in openItem.inside:
+                openItem.inside.remove(insideItem)
+                player.inventory.append(insideItem)
+            return
+        print(f"You can not open the {openItem.name}")
+        return
+    print(f"You do not see a {openItem.name}")
 
 
 def inventory(unused):
@@ -75,7 +100,7 @@ def inventory(unused):
 
 def helpCommands(unused):
     print(
-        "\nUse 'n', 's', 'e', or 'w' to move\nUse 'i' or 'inventory' to view inventory\nUse 'take', 'drop', 'look', to interact with items\n"
+        "\nUse 'n', 's', 'e', or 'w' to move\nUse 'i' or 'inventory' to view inventory\nUse 'take', 'drop', 'look', 'open, to interact with items\n"
     )
 
 
@@ -116,7 +141,7 @@ def roomInfo(rm):
     print("=" * 5)
 
     # exits
-    roomExits = ["n_to", "s_to", "e_to", "w_to"]
+    roomExits = ["n_to", "s_to", "e_to", "w_to", "u_to", "d_to"]
 
     exits = []
     for direction in roomExits:
@@ -137,9 +162,10 @@ def quitGame():
 
 worldItems = {
     "torch": Lightsource("torch", "A lit torch that is able to provide some light"),
-    "key": Item("key", "Who knows what lock this key might open?"),
+    "rope": Item("rope", "A rope that could be used to cross a large gap"),
+    "chest": Container("chest", "A chest that contains a neatly coiled rope", []),
 }
-
+worldItems["chest"].inside.append(worldItems["rope"])
 
 # Declare all the rooms
 
@@ -147,12 +173,12 @@ room = {
     "outside": Room(
         "Outside Cave Entrance",
         "North of you, the cave mount beckons",
-        [],
+        [worldItems["chest"]],
         True,
     ),
     "foyer": Room(
         "Foyer",
-        "Dim light filters in from the south. Dusty passages run north and east.",
+        """Dim light filters in from the south. Dusty passages run north and east.""",
         [worldItems["torch"]],
         True,
     ),
@@ -160,21 +186,30 @@ room = {
         "Grand Overlook",
         """A steep cliff appears before you, falling
     into the darkness. Ahead to the north, a light flickers in
-    the distance, but there is no way across the chasm.""",
+    the far distance, but there is no way across the chasm.""",
         [],
     ),
     "narrow": Room(
         "Narrow Passage",
-        """The narrow passage bends here from west
-    to north. The smell of gold permeates the air.""",
+        "The narrow passage curves here from west to north.",
+        [],
+    ),
+    "bottomTower": Room(
+        "Tower Floor",
+        "There is a old spiral staircase leading up toward the next floor. You are not sure when it was last used.",
+        [],
+    ),
+    "midTower": Room(
+        "Tower Stairs",
+        "The winding stairs lead both up and down. The smell of gold permeates the air.",
         [],
     ),
     "treasure": Room(
         "Treasure Chamber",
-        """You've found the long-lost treasure
-    chamber! Sadly, it has already been completely emptied by
-    earlier adventurers. The only exit is to the south.""",
-        [],
+        """You've found the long-lost treasure chamber!
+        A lone chest covered in cobwebs sits against the far wall.
+        The only exit is back down the stairs.""",
+        [worldItems["chest"]],
     ),
 }
 
@@ -187,8 +222,13 @@ room["foyer"].n_to = room["overlook"]
 room["foyer"].e_to = room["narrow"]
 room["overlook"].s_to = room["foyer"]
 room["narrow"].w_to = room["foyer"]
-room["narrow"].n_to = room["treasure"]
-room["treasure"].s_to = room["narrow"]
+room["narrow"].n_to = room["bottomTower"]
+room["bottomTower"].s_to = room["narrow"]
+room["bottomTower"].u_to = room["midTower"]
+room["midTower"].d_to = room["bottomTower"]
+room["midTower"].u_to = room["treasure"]
+room["treasure"].d_to = room["midTower"]
+
 
 # Make a new player object that is currently in the 'outside' room.
 
@@ -223,10 +263,14 @@ moveDir = {
     "s": movePlayer,
     "e": movePlayer,
     "w": movePlayer,
+    "u": movePlayer,
+    "d": movePlayer,
     "north": movePlayer,
     "south": movePlayer,
     "east": movePlayer,
     "west": movePlayer,
+    "up": movePlayer,
+    "down": movePlayer,
     "i": inventory,
     "h": helpCommands,
 }
@@ -235,6 +279,7 @@ commands = {
     "get": take,
     "drop": drop,
     "look": look,
+    "open": openContainer,
     "inventory": inventory,
     "move": movePlayer,
     "help": helpCommands,
@@ -257,5 +302,5 @@ while True:
         fnToCall(cmdInput[1])
         continue
     else:
-        print("Unknown command")
+        print("Unknown command. Type 'help' for a list of commands")
         continue
