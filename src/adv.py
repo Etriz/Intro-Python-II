@@ -5,8 +5,8 @@ from item import Item
 
 
 def getUserInput():
-    userInput = input("Direction to move: ").lower().split(" ")
-    print(userInput)
+    userInput = input("Input command: ").lower().split(" ")
+    # print(userInput)
     if len(userInput) == 1:
         return userInput[0]
     return userInput
@@ -14,7 +14,7 @@ def getUserInput():
 
 def movePlayer(direction):
     global playerLocation
-    direction += "_to"
+    direction = f"{direction[0]}_to"
 
     if hasattr(playerLocation, direction):
         """debug prints
@@ -41,13 +41,44 @@ def movePlayer(direction):
 
 
 def take(item):
-    print(f"item {item.name} {item.description}")
-
-    playerLocation.items.remove(item)
-    player.inventory.append(item)
-    print(f"player has: {player.inventory}")
-    print(f"room has: {playerLocation.items}")
+    doItem = worldItems[item]
+    if doItem in playerLocation.items:
+        playerLocation.items.remove(doItem)
+        player.inventory.append(doItem)
+        print(doItem.on_take())
+        return
+    print(f"There is no {doItem.name} here")
     return
+
+
+def drop(item):
+    doItem = worldItems[item]
+    if doItem in player.inventory:
+        playerLocation.items.append(doItem)
+        player.inventory.remove(doItem)
+        print(doItem.on_drop())
+        return
+    print(f"You are not carrying a {doItem.name}")
+    return
+
+
+def look(item):
+    lookItem = worldItems[item]
+    if lookItem in player.inventory or lookItem in playerLocation.items:
+        print(lookItem.description)
+        return
+    print(f"You do not see a {lookItem.name}")
+    return
+
+
+def inventory(unused):
+    print(player.hasInventory())
+
+
+def helpCommands(unused):
+    return print(
+        "Use 'n', 's', 'e', or 'w' to move\nUse 'i' to view inventory\nUse 'take', 'drop', 'look', to interact with items"
+    )
 
 
 def roomInfo(rm):
@@ -96,28 +127,32 @@ room = {
     "outside": Room(
         "Outside Cave Entrance",
         "North of you, the cave mount beckons",
-        [worldItems["torch"], worldItems["key"]],
+        [worldItems["torch"]],
     ),
     "foyer": Room(
         "Foyer",
         "Dim light filters in from the south. Dusty passages run north and east.",
+        [],
     ),
     "overlook": Room(
         "Grand Overlook",
         """A steep cliff appears before you, falling
     into the darkness. Ahead to the north, a light flickers in
     the distance, but there is no way across the chasm.""",
+        [],
     ),
     "narrow": Room(
         "Narrow Passage",
         """The narrow passage bends here from west
     to north. The smell of gold permeates the air.""",
+        [],
     ),
     "treasure": Room(
         "Treasure Chamber",
         """You've found the long-lost treasure
     chamber! Sadly, it has already been completely emptied by
     earlier adventurers. The only exit is to the south.""",
+        [],
     ),
 }
 
@@ -161,22 +196,44 @@ playerLocation = player.current_room
 # print(room["foyer"])
 # print(room["outside"])
 # print(f"Connects to: {room[playerLocation].n_to.name}")
-moveDir = ["n", "s", "e", "w"]
-doCmds = ["get", "take", "drop", "look"]
+moveDir = {
+    "n": movePlayer,
+    "s": movePlayer,
+    "e": movePlayer,
+    "w": movePlayer,
+    "north": movePlayer,
+    "south": movePlayer,
+    "east": movePlayer,
+    "west": movePlayer,
+    "i": inventory,
+    "h": helpCommands,
+}
+commands = {
+    "take": take,
+    "get": take,
+    "drop": drop,
+    "look": look,
+    "move": movePlayer,
+    "help": helpCommands,
+}
 
 #! GAME LOOP
 roomInfo(playerLocation)
 while True:
-    print(f"inv is {player.inventory}")
+    # print(f"inv is {[item.name for item in player.inventory]}")
     cmdInput = getUserInput()
     if cmdInput == "q" or cmdInput == "quit":
         break
+    elif cmdInput[0] in moveDir:
+        # direction = moveDir[cmdInput]
+        # movePlayer(direction)
+        fnToCall = moveDir[cmdInput[0]]
+        fnToCall(cmdInput[0])
+        continue
+    elif cmdInput[0] in commands:
+        fnToCall = commands[cmdInput[0]]
+        fnToCall(cmdInput[1])
+        continue
     else:
-        if cmdInput in moveDir:
-            movePlayer(cmdInput)
-            continue
-        elif cmdInput[0] == "take":
-            take(worldItems[cmdInput[1]])
-            continue
-        else:
-            print("Unknown command")
+        print("Unknown command")
+        continue
