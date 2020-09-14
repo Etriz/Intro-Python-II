@@ -2,6 +2,7 @@
 from room import Room
 from player import Player
 from item import Item
+from lightsource import Lightsource
 
 
 def getUserInput():
@@ -41,25 +42,23 @@ def movePlayer(direction):
 
 
 def take(item):
-    doItem = worldItems[item]
-    if doItem in playerLocation.items:
-        playerLocation.items.remove(doItem)
-        player.inventory.append(doItem)
-        print(doItem.on_take())
+    takeItem = worldItems[item]
+    if takeItem in playerLocation.items:
+        playerLocation.items.remove(takeItem)
+        player.inventory.append(takeItem)
+        print(takeItem.on_take())
         return
-    print(f"There is no {doItem.name} here")
-    return
+    print(f"There is no {takeItem.name} here")
 
 
 def drop(item):
-    doItem = worldItems[item]
-    if doItem in player.inventory:
-        playerLocation.items.append(doItem)
-        player.inventory.remove(doItem)
-        print(doItem.on_drop())
+    dropItem = worldItems[item]
+    if dropItem in player.inventory:
+        playerLocation.items.append(dropItem)
+        player.inventory.remove(dropItem)
+        print(dropItem.on_drop())
         return
-    print(f"You are not carrying a {doItem.name}")
-    return
+    print(f"You are not carrying a {dropItem.name}")
 
 
 def look(item):
@@ -68,7 +67,6 @@ def look(item):
         print(lookItem.description)
         return
     print(f"You do not see a {lookItem.name}")
-    return
 
 
 def inventory(unused):
@@ -76,12 +74,34 @@ def inventory(unused):
 
 
 def helpCommands(unused):
-    return print(
-        "Use 'n', 's', 'e', or 'w' to move\nUse 'i' to view inventory\nUse 'take', 'drop', 'look', to interact with items"
+    print(
+        "\nUse 'n', 's', 'e', or 'w' to move\nUse 'i' or 'inventory' to view inventory\nUse 'take', 'drop', 'look', to interact with items\n"
     )
 
 
 def roomInfo(rm):
+    """
+    check if light is in the room
+    """
+    if (
+        playerLocation.isLight == False
+        and len(
+            [item.name for item in player.inventory if isinstance(item, Lightsource)]
+        )
+        == 0
+        and len(
+            [
+                item.name
+                for item in playerLocation.items
+                if isinstance(item, Lightsource)
+            ]
+        )
+        == 0
+    ):
+        print(f"This room is too dark to see anything")
+        print("=" * 5)
+        return
+
     # room name
     print(f"You are in the {playerLocation}")
     print("=" * 5)
@@ -110,14 +130,14 @@ def roomInfo(rm):
 
 
 def quitGame():
-    return "game quit"
+    print("Game Quit")
 
 
 # Item creation
 
 worldItems = {
-    "torch": Item("torch", "A lit torch that is able to provide some light"),
-    "key": Item("key", "Who knows what lock this might open?"),
+    "torch": Lightsource("torch", "A lit torch that is able to provide some light"),
+    "key": Item("key", "Who knows what lock this key might open?"),
 }
 
 
@@ -127,12 +147,14 @@ room = {
     "outside": Room(
         "Outside Cave Entrance",
         "North of you, the cave mount beckons",
-        [worldItems["torch"]],
+        [],
+        True,
     ),
     "foyer": Room(
         "Foyer",
         "Dim light filters in from the south. Dusty passages run north and east.",
-        [],
+        [worldItems["torch"]],
+        True,
     ),
     "overlook": Room(
         "Grand Overlook",
@@ -213,6 +235,7 @@ commands = {
     "get": take,
     "drop": drop,
     "look": look,
+    "inventory": inventory,
     "move": movePlayer,
     "help": helpCommands,
 }
@@ -223,10 +246,9 @@ while True:
     # print(f"inv is {[item.name for item in player.inventory]}")
     cmdInput = getUserInput()
     if cmdInput == "q" or cmdInput == "quit":
+        quitGame()
         break
     elif cmdInput[0] in moveDir:
-        # direction = moveDir[cmdInput]
-        # movePlayer(direction)
         fnToCall = moveDir[cmdInput[0]]
         fnToCall(cmdInput[0])
         continue
