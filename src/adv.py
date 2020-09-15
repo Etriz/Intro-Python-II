@@ -8,7 +8,6 @@ from container import Container
 
 def getUserInput():
     userInput = input("Input command: ").lower().split(" ")
-    # print(userInput)
     if len(userInput) == 1:
         return userInput[0]
     return userInput
@@ -24,8 +23,6 @@ def movePlayer(direction):
         print(f"playerLocation: {playerLocation}")
         print(f"input {direction}")
         """
-        # player.current_room = getattr(playerLocation, direction)
-        # player.current_room = room[playerLocation][direction]
         playerLocation = getattr(playerLocation, direction)
         """ more debug prints
         print(f"current room: {player.current_room}")
@@ -70,11 +67,6 @@ def look(item):
     lookItem = worldItems[item]
     if lookItem in player.inventory or lookItem in playerLocation.items:
         print(lookItem.description)
-        # isContainer = isinstance(lookItem, Container)
-        # if isContainer:
-        #     for insideItem in lookItem.inside:
-        #         lookItem.inside.remove(insideItem)
-        #         playerLocation.items.append(insideItem)
         return
     print(f"You do not see a {lookItem.name}")
 
@@ -100,7 +92,7 @@ def inventory(unused):
 
 def helpCommands(unused):
     print(
-        "\nUse 'n', 's', 'e', or 'w' to move\nUse 'i' or 'inventory' to view inventory\nUse 'take', 'drop', 'look', 'open, to interact with items\n"
+        "\nUse 'n', 's', 'e', or 'w' to move\nUse 'i' or 'inventory' to view inventory\nUse 'take', 'drop', 'look', 'open', to interact with items\n"
     )
 
 
@@ -163,9 +155,12 @@ def quitGame():
 worldItems = {
     "torch": Lightsource("torch", "A lit torch that is able to provide some light"),
     "rope": Item("rope", "A rope that could be used to cross a large gap"),
-    "chest": Container("chest", "A chest that contains a neatly coiled rope", []),
+    "treasureChest": Container(
+        "chest", "A chest that contains a neatly coiled rope", []
+    ),
 }
-worldItems["chest"].inside.append(worldItems["rope"])
+# add items into Container instances
+worldItems["treasureChest"].inside.append(worldItems["rope"])
 
 # Declare all the rooms
 
@@ -173,7 +168,7 @@ room = {
     "outside": Room(
         "Outside Cave Entrance",
         "North of you, the cave mount beckons",
-        [worldItems["chest"]],
+        [],
         True,
     ),
     "foyer": Room(
@@ -209,7 +204,7 @@ room = {
         """You've found the long-lost treasure chamber!
         A lone chest covered in cobwebs sits against the far wall.
         The only exit is back down the stairs.""",
-        [worldItems["chest"]],
+        [worldItems["treasureChest"]],
     ),
 }
 
